@@ -1,7 +1,10 @@
 # image_rak
 simple image manipulator / exiff tool
 
-image_rust_army_knife
+## Image Rust Army Knife
+
+Switched to camel_case for naming rust repos as apparently it's preffered over kebab-case for crates / repos.
+
 ## CLI: ToDo
 - Allow for image selection
 - Re-size image
@@ -9,5 +12,5 @@ image_rust_army_knife
 - Image conversion
 - Exiff Stripper / editor / viewer
   
-- ## GUI: ToDo
+## GUI: ToDo
 - GUI using https://iced.rs/
