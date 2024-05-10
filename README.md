@@ -11,6 +11,9 @@ Using https://crates.io/crates/image.
 - Crop image
 - Image conversion
 - Exiff Stripper / editor / viewer
+
+## TUI: ToDo
+- https://github.com/ratatui-org/ratatui
   
 ## GUI: ToDo
 - GUI using https://iced.rs/
