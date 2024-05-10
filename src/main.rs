@@ -52,6 +52,25 @@ Hello World Guide:
     n. Terminate Alt Screen, disable raw mode.
 
 */
+
+/*
+To Modify:
+    mode picker on: 
+        1. Allow for image selection
+        2. Re-size image
+        3. Crop image
+        4. Image conversion
+        5. Exiff (Stripper / editor / viewer)
+    
+    Change bottom window of previous enter strings to be previous comamnds, 
+        make it scrollable,
+        size it down
+    
+    add new window for potential options from mode_picker.
+    run string on enter through image/ exiff functions.
+    start out with file selecter.
+
+*/
 use std::io;
 
 use crossterm::{
