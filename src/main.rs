@@ -72,6 +72,7 @@ To Modify:
 
 */
 use std::io;
+use image::io::Reader;
 
 use crossterm::{
     event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode, KeyEventKind},
@@ -87,6 +88,7 @@ use std::io::{stdout, Result};
 
 enum InputMode {
     Normal,
+    FileChooser,
     Editing,
 }
 
@@ -101,7 +103,7 @@ impl App {
     const fn new() -> Self {
         Self {
             input: String::new(),
-            input_mode: InputMode::Normal,
+            input_mode: InputMode::FileChooser,
             messages: Vec::new(),
             character_index: 0,
         }
@@ -158,6 +160,21 @@ impl App {
         self.messages.push(self.input.clone());
         self.input.clear();
         self.reset_cursor();
+    }
+
+    fn submit_directory (&mut self) {
+        self.messages.push(self.input.clone());
+        let image_dir = self.input.clone();
+        self.input.clear();
+        self.reset_cursor();
+
+        self.image = self.image_grabber(image_dir);
+    }
+
+    // TODO https://docs.rs/image/latest/image/
+
+    fn image_grabber (&mut self, image_dir: String) {
+
     }
 }
 
@@ -224,6 +241,27 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Result<(
                     }
                     _ => {}
                 },
+                InputMode::FileChooser => match key.code{
+                    KeyCode::Enter => {
+                        app.submit_directory()
+                    },
+                    KeyCode::Char(to_insert) => {
+                        app.enter_char(to_insert);
+                    }
+                    KeyCode::Backspace => {
+                        app.delete_char();
+                    }
+                    KeyCode::Left => {
+                        app.move_cursor_left();
+                    }
+                    KeyCode::Right => {
+                        app.move_cursor_right();
+                    }
+                    KeyCode::Esc => {
+                        app.input_mode = InputMode::Normal;
+                    }
+                    _ => {}
+                },
                 InputMode::Editing => {}
             }
         }
@@ -249,6 +287,17 @@ fn ui(f: &mut Frame, app: &App) {
             ],
             Style::default().add_modifier(Modifier::RAPID_BLINK),
         ),
+        InputMode::FileChooser => (
+            vec![
+                "Press ".into(),
+                "Esc".bold(),
+                " to stop inputting, ".into(),
+                "Please select the file directory of the image to edit, ".into(),
+                "Enter".bold(),
+                " to record th".into(),
+            ],
+            Style::default(),
+        ),
         InputMode::Editing => (
             vec![
                 "Press ".into(),
@@ -269,12 +318,20 @@ fn ui(f: &mut Frame, app: &App) {
         .style(match app.input_mode {
             InputMode::Normal => Style::default(),
             InputMode::Editing => Style::default().fg(Color::Yellow),
+            InputMode::FileChooser => Style::default().fg(Color::Green),
         })
         .block(Block::bordered().title("Input"));
     f.render_widget(input, input_area);
     match app.input_mode {
         InputMode::Normal => {}
         InputMode::Editing => {
+            #[allow(clippy::cast_possible_truncation)]
+            f.set_cursor(
+                input_area.x + app.character_index as u16 + 1,
+                input_area.y + 1,
+            );
+        }
+        InputMode::FileChooser => {
             #[allow(clippy::cast_possible_truncation)]
             f.set_cursor(
                 input_area.x + app.character_index as u16 + 1,
