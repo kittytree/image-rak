@@ -1,6 +1,8 @@
 /*
 Sources;
          https://ratatui.rs/,
+         https://ratatui.rs/concepts/widgets/,
+         https://docs.rs/ratatui/latest/ratatui/widgets/struct.List.html,
          https://github.com/ratatui-org/ratatui/blob/main/examples/user_input.rs,
          https://github.com/ratatui-org/ratatui/blob/main/examples/README.md,
          https://ratatui.rs/tutorials/hello-world/,
@@ -55,17 +57,17 @@ Hello World Guide:
 
 /*
 To Modify:
-    mode picker on: 
+    mode picker on:
         1. Allow for image selection
         2. Re-size image
         3. Crop image
         4. Image conversion
         5. Exiff (Stripper / editor / viewer)
-    
-    Change bottom window of previous enter strings to be previous comamnds, 
+
+    Change bottom window of previous enter strings to be previous comamnds,
         make it scrollable,
         size it down
-    
+
     add new window for potential options from mode_picker.
     run string on enter through image/ exiff functions.
     start out with file selecter.
@@ -80,7 +82,7 @@ use crossterm::{
 };
 use ratatui::{
     prelude::*,
-    widgets::{Block, Paragraph},
+    widgets::{Block, List, Paragraph},
 };
 
 use std::io::{stdout, Result};
@@ -101,8 +103,8 @@ struct App {
     input: String,
     character_index: usize,
     input_mode: InputMode,
-    messages: String,
-    current_mode: ImageMode,
+    message: String,
+    current_image_mode: ImageMode,
 }
 
 impl App {
@@ -110,9 +112,9 @@ impl App {
         Self {
             input: String::new(),
             input_mode: InputMode::Normal,
-            messages: String::new(),
+            message: String::new(),
             character_index: 0,
-            current_mode: ImageMode::SelectMode,
+            current_image_mode: ImageMode::ImagePicker,
         }
     }
 
@@ -164,11 +166,49 @@ impl App {
     }
 
     fn submit_message(&mut self) {
-        self.messages = self.input.clone();
+        self.message = self.input.clone();
+        match self.current_image_mode {
+            ImageMode::SelectMode => {
+                let mode_chosen: u8 = match self.message.trim().parse() {
+                    Ok(num) => num,
+                    Err(_) => 0,
+                };
+                match mode_chosen {
+                    1 => {
+                        self.current_image_mode = ImageMode::ImagePicker;
+                    },
+                    2 => {
+                        self.current_image_mode = ImageMode::ReSize;
+                    },
+                    3 => {
+                        self.current_image_mode = ImageMode::Crop;
+                    },
+                    4 => {
+                        self.current_image_mode = ImageMode::Conversion;
+                    },
+                    _ => {}
+                }
+            },
+            ImageMode::ImagePicker => {
+                //TODO
+                self.current_image_mode = ImageMode::SelectMode;
+            },
+            ImageMode::ReSize => {
+                //TODO
+                self.current_image_mode = ImageMode::SelectMode;
+            },
+            ImageMode::Crop => {
+                //TODO
+                self.current_image_mode = ImageMode::SelectMode;
+            },
+            ImageMode::Conversion => {
+                //TODO
+                self.current_image_mode = ImageMode::SelectMode;
+            }
+        };
         self.input.clear();
         self.reset_cursor();
     }
-
 }
 
 fn main() -> Result<()> {
@@ -292,60 +332,32 @@ fn ui(f: &mut Frame, app: &App) {
             );
         }
     }
-    //let message = Paragraph::new(app.messages).block(Block::bordered().title("Messages"));
-    let (msg, style) = match app.current_mode {
-        ImageMode::SelectMode => (
-            vec![
-                "Press ".into(),
-                "q".bold(),
-                " to exit, ".into(),
-                "e".bold(),
-                " to start editing.".bold(),
-            ],
-            Style::default().add_modifier(Modifier::RAPID_BLINK),
-        ),
-        ImageMode::ImagePicker => (
-            vec![
-                "Press ".into(),
-                "Esc".bold(),
-                " to stop editing, ".into(),
-                "Enter".bold(),
-                " to record the message".into(),
-            ],
-            Style::default(),
-        ),
-        ImageMode::ReSize => (
-            vec![
-                "Press ".into(),
-                "Esc".bold(),
-                " to stop editing, ".into(),
-                "Enter".bold(),
-                " to record the message".into(),
-            ],
-            Style::default(),
-        ),
-        ImageMode::Crop => (
-            vec![
-                "Press ".into(),
-                "Esc".bold(),
-                " to stop editing, ".into(),
-                "Enter".bold(),
-                " to record the message".into(),
-            ],
-            Style::default(),
-        ),
-        ImageMode::Conversion => (
-            vec![
-                "Press ".into(),
-                "Esc".bold(),
-                " to stop editing, ".into(),
-                "Enter".bold(),
-                " to record the message".into(),
-            ],
-            Style::default(),
-        ),
 
+    let mut options_vec: Vec<String> = Vec::new();
+    match app.current_image_mode {
+        ImageMode::SelectMode => {
+            options_vec.push("Please select one of the following modes.".to_string());
+            options_vec.push("Enter the number only.".to_string());
+            options_vec.push("1. Image Picker".to_string());
+            options_vec.push("2. Re-Size the image".to_string());
+            options_vec.push("3. Crop the image".to_string());
+            options_vec.push("4. Conver the image format".to_string());
+        }
+        ImageMode::ImagePicker => {
+            options_vec.push("Enter the directory of the image you wish to edit".to_string());
+            options_vec.push("Example: /home/kittytree/Pictures/meow.jpg".to_string());
+        }
+        ImageMode::ReSize => {
+            options_vec.push("1. Image Picker".to_string());
+        }
+        ImageMode::Crop => {
+            options_vec.push("1. Image Picker".to_string());
+        }
+        ImageMode::Conversion => {
+            options_vec.push("1. Image Picker".to_string());
+        }
     };
-    let text = Text::from(Line::from(msg)).patch_style(style);
-    f.render_widget(text , messages_area)
+
+    let options = List::new(options_vec).block(Block::bordered().title("Messages"));
+    f.render_widget(options, messages_area)
 }
