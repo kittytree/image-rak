@@ -72,7 +72,6 @@ To Modify:
 
 */
 use std::io;
-use image::io::Reader;
 
 use crossterm::{
     event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode, KeyEventKind},
@@ -81,31 +80,39 @@ use crossterm::{
 };
 use ratatui::{
     prelude::*,
-    widgets::{Block, List, ListItem, Paragraph},
+    widgets::{Block, Paragraph},
 };
 
 use std::io::{stdout, Result};
 
 enum InputMode {
     Normal,
-    FileChooser,
     Editing,
+}
+enum ImageMode {
+    SelectMode,
+    ImagePicker,
+    ReSize,
+    Crop,
+    Conversion,
 }
 
 struct App {
     input: String,
     character_index: usize,
     input_mode: InputMode,
-    messages: Vec<String>,
+    messages: String,
+    current_mode: ImageMode,
 }
 
 impl App {
     const fn new() -> Self {
         Self {
             input: String::new(),
-            input_mode: InputMode::FileChooser,
-            messages: Vec::new(),
+            input_mode: InputMode::Normal,
+            messages: String::new(),
             character_index: 0,
+            current_mode: ImageMode::SelectMode,
         }
     }
 
@@ -157,25 +164,11 @@ impl App {
     }
 
     fn submit_message(&mut self) {
-        self.messages.push(self.input.clone());
+        self.messages = self.input.clone();
         self.input.clear();
         self.reset_cursor();
     }
 
-    fn submit_directory (&mut self) {
-        self.messages.push(self.input.clone());
-        let image_dir = self.input.clone();
-        self.input.clear();
-        self.reset_cursor();
-
-        self.image = self.image_grabber(image_dir);
-    }
-
-    // TODO https://docs.rs/image/latest/image/
-
-    fn image_grabber (&mut self, image_dir: String) {
-
-    }
 }
 
 fn main() -> Result<()> {
@@ -241,27 +234,6 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Result<(
                     }
                     _ => {}
                 },
-                InputMode::FileChooser => match key.code{
-                    KeyCode::Enter => {
-                        app.submit_directory()
-                    },
-                    KeyCode::Char(to_insert) => {
-                        app.enter_char(to_insert);
-                    }
-                    KeyCode::Backspace => {
-                        app.delete_char();
-                    }
-                    KeyCode::Left => {
-                        app.move_cursor_left();
-                    }
-                    KeyCode::Right => {
-                        app.move_cursor_right();
-                    }
-                    KeyCode::Esc => {
-                        app.input_mode = InputMode::Normal;
-                    }
-                    _ => {}
-                },
                 InputMode::Editing => {}
             }
         }
@@ -287,17 +259,6 @@ fn ui(f: &mut Frame, app: &App) {
             ],
             Style::default().add_modifier(Modifier::RAPID_BLINK),
         ),
-        InputMode::FileChooser => (
-            vec![
-                "Press ".into(),
-                "Esc".bold(),
-                " to stop inputting, ".into(),
-                "Please select the file directory of the image to edit, ".into(),
-                "Enter".bold(),
-                " to record th".into(),
-            ],
-            Style::default(),
-        ),
         InputMode::Editing => (
             vec![
                 "Press ".into(),
@@ -318,7 +279,6 @@ fn ui(f: &mut Frame, app: &App) {
         .style(match app.input_mode {
             InputMode::Normal => Style::default(),
             InputMode::Editing => Style::default().fg(Color::Yellow),
-            InputMode::FileChooser => Style::default().fg(Color::Green),
         })
         .block(Block::bordered().title("Input"));
     f.render_widget(input, input_area);
@@ -331,24 +291,61 @@ fn ui(f: &mut Frame, app: &App) {
                 input_area.y + 1,
             );
         }
-        InputMode::FileChooser => {
-            #[allow(clippy::cast_possible_truncation)]
-            f.set_cursor(
-                input_area.x + app.character_index as u16 + 1,
-                input_area.y + 1,
-            );
-        }
     }
+    //let message = Paragraph::new(app.messages).block(Block::bordered().title("Messages"));
+    let (msg, style) = match app.current_mode {
+        ImageMode::SelectMode => (
+            vec![
+                "Press ".into(),
+                "q".bold(),
+                " to exit, ".into(),
+                "e".bold(),
+                " to start editing.".bold(),
+            ],
+            Style::default().add_modifier(Modifier::RAPID_BLINK),
+        ),
+        ImageMode::ImagePicker => (
+            vec![
+                "Press ".into(),
+                "Esc".bold(),
+                " to stop editing, ".into(),
+                "Enter".bold(),
+                " to record the message".into(),
+            ],
+            Style::default(),
+        ),
+        ImageMode::ReSize => (
+            vec![
+                "Press ".into(),
+                "Esc".bold(),
+                " to stop editing, ".into(),
+                "Enter".bold(),
+                " to record the message".into(),
+            ],
+            Style::default(),
+        ),
+        ImageMode::Crop => (
+            vec![
+                "Press ".into(),
+                "Esc".bold(),
+                " to stop editing, ".into(),
+                "Enter".bold(),
+                " to record the message".into(),
+            ],
+            Style::default(),
+        ),
+        ImageMode::Conversion => (
+            vec![
+                "Press ".into(),
+                "Esc".bold(),
+                " to stop editing, ".into(),
+                "Enter".bold(),
+                " to record the message".into(),
+            ],
+            Style::default(),
+        ),
 
-    let messages: Vec<ListItem> = app
-        .messages
-        .iter()
-        .enumerate()
-        .map(|(i, m)| {
-            let content = Line::from(Span::raw(format!("{i}: {m}")));
-            ListItem::new(content)
-        })
-        .collect();
-    let messages = List::new(messages).block(Block::bordered().title("Messages"));
-    f.render_widget(messages, messages_area)
+    };
+    let text = Text::from(Line::from(msg)).patch_style(style);
+    f.render_widget(text , messages_area)
 }
