@@ -72,8 +72,14 @@ To Modify:
     run string on enter through image/ exiff functions.
     start out with file selecter.
 
+    Testing:
+        image: /home/kitty/Code/Rust/image_rak/duck.png
+
 */
 use std::io;
+use std::path::Path;
+
+use image::DynamicImage;
 
 use crossterm::{
     event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode, KeyEventKind},
@@ -105,6 +111,7 @@ struct App {
     input_mode: InputMode,
     message: String,
     current_image_mode: ImageMode,
+    to_edit_image: String,
 }
 
 impl App {
@@ -115,6 +122,7 @@ impl App {
             message: String::new(),
             character_index: 0,
             current_image_mode: ImageMode::ImagePicker,
+            to_edit_image: String::new(),
         }
     }
 
@@ -165,6 +173,15 @@ impl App {
         self.character_index = 0;
     }
 
+    fn input_image_check (&mut self) {
+        // ToDo Gracefully Panic?
+        // Skip?
+        image::open(Path::new(&self.message)).unwrap_or_else(|error| {
+            panic!("Porblem opening the file: {:?}", error);
+        });
+        return;
+    }
+
     fn submit_message(&mut self) {
         self.message = self.input.clone();
         match self.current_image_mode {
@@ -190,7 +207,8 @@ impl App {
                 }
             },
             ImageMode::ImagePicker => {
-                //TODO
+                self.input_image_check();
+                self.to_edit_image = self.input.clone();
                 self.current_image_mode = ImageMode::SelectMode;
             },
             ImageMode::ReSize => {
