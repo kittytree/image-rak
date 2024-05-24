@@ -8,18 +8,18 @@ Sources;
          https://ratatui.rs/tutorials/hello-world/,
 
 
-Events: 3 main ways to handle events; Centrealized event hadnling on event::read(),
-    centralized catching, message passing i.e main polling loop,
-    Distributed event loops / segmented apps i.e sub looping from main.
+Events: 3 main ways to handle events; centralized event handling on event::read(),
+    centralized catching, message passing i.e. main polling loop,
+    Distributed event loops / segmented apps i.e. sub looping from main.
 
 Crossterm: https://docs.rs/crossterm/0.27.0/crossterm/
     pure rust, terminal manipulation library. UNIX + windows support.
 
 Raw_Mode: Disable terminal processing and allows us to handle the 'processing'
-    kestroks, keyboard control), crossterm is one backend that enables this
+    keystrokes, keyboard control, crossterm is one backend that enables this
     allows for cursor, drawing, and clearing term screen. It is a wrapper of impl write.
 
-Alternate Screen: Swaps from main to alt, self explanatory. Essentially pauses main,
+Alternate Screen: Swaps from main to alt, self-explanatory. Essentially pauses main,
     creates alt, resumes main on alt termination.
 
 Backends: Crossterm, Termion, Termwiz. Crossterm being the 'simplest' and comes with
@@ -27,18 +27,18 @@ Backends: Crossterm, Termion, Termwiz. Crossterm being the 'simplest' and comes 
 
 Ratatui:
 
-Terminal: main interface of lib, hadnles drawing and maint of diff widgets
+Terminal: main interface of lib, handles drawing and main of diff widgets
 
 Frame: consistent view into terminal state for rendering,
     obtained via closure of Terminal::draw, used to render widgets, and control cursor.
 
-Stylize: used for any tyipe that implements Stylize.
+Stylize: used for any type that implements Stylize.
     pub trait Stylize<'a, T>: Sized {...}
     let text = "Hello".red().on_blue();
-    isntead of
+    instead of
     let text = Span::styled("Hello", Style::default().fg(Color::Red).bg(Color::Blue));
 
-Paragraph: Used to disaplay text
+Paragraph: Used to display text
     pub struct Paragraph<'a> { /* private fields */ }
 
 Style shorthands:
@@ -62,24 +62,21 @@ To Modify:
         2. Re-size image
         3. Crop image
         4. Image conversion
-        5. Exiff (Stripper / editor / viewer)
+        5. Exif (Stripper / editor / viewer)
 
-    Change bottom window of previous enter strings to be previous comamnds,
+    Change bottom window of previous enter strings to be previous commands,
         make it scrollable,
         size it down
 
     add new window for potential options from mode_picker.
-    run string on enter through image/ exiff functions.
-    start out with file selecter.
+    run string on enter through image/ Exif functions.
+    start out with file Selector.
 
     Testing:
         image: /home/kitty/Code/Rust/image_rak/duck.png
 
 */
-use std::io;
 use std::path::Path;
-
-use image::DynamicImage;
 
 use crossterm::{
     event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode, KeyEventKind},
@@ -177,8 +174,9 @@ impl App {
         // ToDo Gracefully Panic?
         // Skip?
         image::open(Path::new(&self.message)).unwrap_or_else(|error| {
-            panic!("Porblem opening the file: {:?}", error);
+            panic!("Problem opening the file: {:?}", error);
         });
+        self.to_edit_image = (&self.message).parse().unwrap();
         return;
     }
 
@@ -186,10 +184,7 @@ impl App {
         self.message = self.input.clone();
         match self.current_image_mode {
             ImageMode::SelectMode => {
-                let mode_chosen: u8 = match self.message.trim().parse() {
-                    Ok(num) => num,
-                    Err(_) => 0,
-                };
+                let mode_chosen: u8 = self.message.trim().parse().unwrap_or_else(|_| 0);
                 match mode_chosen {
                     1 => {
                         self.current_image_mode = ImageMode::ImagePicker;
@@ -258,7 +253,7 @@ fn main() -> Result<()> {
     Ok(())
 }
 
-fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Result<()> {
+fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> Result<()> {
     loop {
         terminal.draw(|f| ui(f, &app))?;
 
@@ -359,7 +354,7 @@ fn ui(f: &mut Frame, app: &App) {
             options_vec.push("1. Image Picker".to_string());
             options_vec.push("2. Re-Size the image".to_string());
             options_vec.push("3. Crop the image".to_string());
-            options_vec.push("4. Conver the image format".to_string());
+            options_vec.push("4. Convert the image format".to_string());
         }
         ImageMode::ImagePicker => {
             options_vec.push("Enter the directory of the image you wish to edit".to_string());
