@@ -89,6 +89,7 @@ use ratatui::{
 };
 
 use std::io::{stdout, Result};
+use image::imageops::FilterType;
 
 enum InputMode {
     Normal,
@@ -98,8 +99,8 @@ enum ImageMode {
     SelectMode,
     ImagePicker,
     ReSize,
-    Crop,
-    Conversion,
+    Grayscale,
+    Blur,
 }
 
 struct App {
@@ -180,6 +181,48 @@ impl App {
         return;
     }
 
+    fn resize_image(&mut self) {
+        let mut img = image::open(Path::new(&self.to_edit_image)).unwrap_or_else(|error| {
+            panic!("Problem opening the file: {:?}", error);
+        });
+
+        let dimensions = self.message.split("x").collect::<Vec<_>>();
+
+        let width: u32 = dimensions[0].parse().unwrap_or_else(|error| {
+            panic!("Problem parsing dimension width: {:?}", error);
+        });
+        let height: u32 = dimensions[1].parse().unwrap_or_else(|error| {
+            panic!("Problem parsing dimension width: {:?}", error);
+        });
+
+        img = img.resize(width,height, FilterType::Triangle);
+        img.save(&self.to_edit_image).unwrap();
+        self.current_image_mode = ImageMode::SelectMode;
+        return;
+    }
+    fn grayscale_image(&mut self) {
+        let mut img = image::open(Path::new(&self.to_edit_image)).unwrap_or_else(|error| {
+            panic!("Problem opening the file: {:?}", error);
+        });
+
+        img = img.grayscale();
+        img.save(&self.to_edit_image).unwrap();
+        self.current_image_mode = ImageMode::SelectMode;
+        return;
+    }
+
+    fn blur_image(&mut self) {
+        let mut img = image::open(Path::new(&self.to_edit_image)).unwrap_or_else(|error| {
+            panic!("Problem opening the file: {:?}", error);
+        });
+        let blur_strength: f32 = self.message.parse().unwrap_or_else(|error| {
+            panic!("Problem parsing dimension width: {:?}", error);
+        });
+        img = img.blur(blur_strength);
+        img.save(&self.to_edit_image).unwrap();
+        self.current_image_mode = ImageMode::SelectMode;
+    }
+
     fn submit_message(&mut self) {
         self.message = self.input.clone();
         match self.current_image_mode {
@@ -193,10 +236,10 @@ impl App {
                         self.current_image_mode = ImageMode::ReSize;
                     },
                     3 => {
-                        self.current_image_mode = ImageMode::Crop;
+                        self.current_image_mode = ImageMode::Grayscale;
                     },
                     4 => {
-                        self.current_image_mode = ImageMode::Conversion;
+                        self.current_image_mode = ImageMode::Blur;
                     },
                     _ => {}
                 }
@@ -207,16 +250,13 @@ impl App {
                 self.current_image_mode = ImageMode::SelectMode;
             },
             ImageMode::ReSize => {
-                //TODO
-                self.current_image_mode = ImageMode::SelectMode;
+                self.resize_image();
             },
-            ImageMode::Crop => {
-                //TODO
-                self.current_image_mode = ImageMode::SelectMode;
+            ImageMode::Grayscale => {
+                self.grayscale_image();
             },
-            ImageMode::Conversion => {
-                //TODO
-                self.current_image_mode = ImageMode::SelectMode;
+            ImageMode::Blur => {
+                self.blur_image();
             }
         };
         self.input.clear();
@@ -353,21 +393,25 @@ fn ui(f: &mut Frame, app: &App) {
             options_vec.push("Enter the number only.".to_string());
             options_vec.push("1. Image Picker".to_string());
             options_vec.push("2. Re-Size the image".to_string());
-            options_vec.push("3. Crop the image".to_string());
-            options_vec.push("4. Convert the image format".to_string());
+            options_vec.push("3. Grayscale the image".to_string());
+            options_vec.push("4. Blur the image format".to_string());
         }
         ImageMode::ImagePicker => {
             options_vec.push("Enter the directory of the image you wish to edit".to_string());
             options_vec.push("Example: /home/kittytree/Pictures/meow.jpg".to_string());
         }
         ImageMode::ReSize => {
-            options_vec.push("1. Image Picker".to_string());
+            options_vec.push("Enter the Width and Height of the wanted re-size".to_string());
+            options_vec.push("In the format of WidthxHeight using whole numbers".to_string());
+            options_vec.push("For example 600x777".to_string());
         }
-        ImageMode::Crop => {
-            options_vec.push("1. Image Picker".to_string());
+        ImageMode::Grayscale => {
+            options_vec.push("Press Enter to Confirm (you have no choice right now :) )".to_string());
         }
-        ImageMode::Conversion => {
-            options_vec.push("1. Image Picker".to_string());
+        ImageMode::Blur => {
+            options_vec.push("Choose a Blur intensity".to_string());
+            options_vec.push("must be a floating point of 32bit size".to_string());
+            options_vec.push("for example 1432.12".to_string());
         }
     };
 
